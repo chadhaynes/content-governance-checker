@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Governance Checker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">GC</span>
+        <div class="brand-text">
+          <h1>Content Governance Checker</h1>
+          <p class="tagline">Catch reading-level, tone, compliance, and accessibility issues before you publish.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="content-panel" aria-labelledby="draft-heading">
+      <div class="panel-card">
+        <h2 id="draft-heading">Draft Content</h2>
+
+        <label for="draftContent" class="field-label">Paste the content you want to check</label>
+        <textarea
+          id="draftContent"
+          class="draft-textarea"
+          placeholder="Paste your draft content here&#10;&#10;e.g. an email body, SMS copy, in-app message, or support article..."
+          rows="16"
+        ></textarea>
+
+        <div class="controls-row">
+          <div class="channel-field">
+            <label for="channelSelect">Channel</label>
+            <select id="channelSelect">
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+              <option value="in-app">In-app message</option>
+              <option value="support">Support page</option>
+            </select>
+          </div>
+
+          <button type="button" id="checkContentBtn" class="check-btn">
+            Check Content
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-card results-card">
+        <div class="results-header">
+          <h2>Results</h2>
+          <ul class="severity-legend" aria-hidden="true">
+            <li><span class="dot dot-high"></span>High</li>
+            <li><span class="dot dot-medium"></span>Medium</li>
+            <li><span class="dot dot-low"></span>Low</li>
+          </ul>
+        </div>
+
+        <div id="resultsPanel" class="results-panel" role="status" aria-live="polite">
+          <div class="results-empty" id="resultsEmpty">
+            <p>No checks run yet.</p>
+            <p class="results-empty-sub">Paste your content, choose a channel, and click <strong>Check Content</strong> to see flagged issues here.</p>
+          </div>
+          <ul class="results-list" id="resultsList" hidden></ul>
+        </div>
+      </div>
+    </section>
+
+    <aside class="rules-sidebar" aria-labelledby="rules-heading">
+      <div class="panel-card">
+        <h2 id="rules-heading">Governance Rules</h2>
+        <p class="sidebar-hint">Toggle the checks you want applied.</p>
+
+        <ul class="rules-list">
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Reading Level</span>
+              <span class="rule-desc">Flag if above Grade 8</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="reading-level">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Passive Voice</span>
+              <span class="rule-desc">Flag excessive use</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="passive-voice">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Compliance Keywords</span>
+              <span class="rule-desc">Flag banned or required terms</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="compliance-keywords">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Tone of Voice</span>
+              <span class="rule-desc">Flag if too formal/informal for the channel</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="tone-of-voice">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Accessibility</span>
+              <span class="rule-desc">Flag missing alt-text patterns, long paragraphs</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="accessibility">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Channel Constraints</span>
+              <span class="rule-desc">Character limits for SMS, push, subject lines</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="channel-constraints">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>Content Governance Checker &mdash; rule logic coming in Step 2.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

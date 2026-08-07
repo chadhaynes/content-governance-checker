@@ -40,6 +40,7 @@
             <select id="channelSelect">
               <option value="email">Email</option>
               <option value="sms">SMS</option>
+              <option value="push">Push notification</option>
               <option value="in-app">In-app message</option>
               <option value="support">Support page</option>
             </select>
@@ -54,10 +55,11 @@
       <div class="panel-card results-card">
         <div class="results-header">
           <h2>Results</h2>
+          <span id="scoreBadge" class="score-badge" hidden></span>
           <ul class="severity-legend" aria-hidden="true">
-            <li><span class="dot dot-high"></span>High</li>
-            <li><span class="dot dot-medium"></span>Medium</li>
-            <li><span class="dot dot-low"></span>Low</li>
+            <li><span class="dot dot-high"></span>Error</li>
+            <li><span class="dot dot-medium"></span>Warning</li>
+            <li><span class="dot dot-low"></span>Info</li>
           </ul>
         </div>
 
@@ -144,6 +146,28 @@
             </label>
           </li>
 
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Sentence Length</span>
+              <span class="rule-desc">Flag sentences over 25 words</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="sentence-length">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
+          <li class="rule-item">
+            <div class="rule-info">
+              <span class="rule-name">Word &amp; Character Count</span>
+              <span class="rule-desc">Show total word and character counts</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked data-rule="word-count">
+              <span class="toggle-slider"></span>
+            </label>
+          </li>
+
         </ul>
       </div>
     </aside>
@@ -151,7 +175,7 @@
   </main>
 
   <footer class="app-footer">
-    <p>Content Governance Checker &mdash; rule logic coming in Step 2.</p>
+    <p>Content Governance Checker &mdash; reading level, passive voice, sentence length, word/character count, and channel constraint checks run locally on the server.</p>
   </footer>
 
   <script src="script.js"></script>

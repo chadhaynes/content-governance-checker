@@ -12,7 +12,7 @@ const express = require("express");
 const { runChecks } = require("./checks");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 const CLIENT_DIR = path.join(__dirname, "..", "client");
 
 app.use(express.json({ limit: "1mb" }));

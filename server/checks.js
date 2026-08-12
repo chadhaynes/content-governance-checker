@@ -16,13 +16,6 @@ const CHANNEL_LIMITS = {
   push: { titleLimit: 50, bodyLimit: 100 },
 };
 
-// Rules that will eventually need AI analysis — not implemented yet.
-// Tone of voice and compliance keywords are now covered by the AI-powered
-// checks in ai-checker.js (see the "ai-review" rule and server.js).
-const UNIMPLEMENTED_RULES = {
-  accessibility: "Accessibility",
-};
-
 // Past-participle forms that don't end in the regular "-ed" pattern, used
 // alongside the regular pattern to catch common irregular passive verbs.
 const IRREGULAR_PARTICIPLES = [
@@ -106,29 +99,32 @@ function truncate(text, max) {
   return text.slice(0, max - 3) + "...";
 }
 
-function checkReadingLevel(words, sentences) {
+function checkReadingLevel(words, sentences, target) {
   const grade = fleschKincaidGrade(words, sentences);
   if (grade === null) return [];
 
   const rounded = Math.round(grade * 10) / 10;
 
-  if (grade > 12) {
+  // A couple of grades over target is a warning; further over is an error,
+  // scaled off the target itself rather than a fixed "12" so a profile with
+  // a stricter (or looser) target still gets a sensible severity split.
+  if (grade > target + 4) {
     return [
       {
         rule: "reading-level",
         severity: "error",
-        description: `Estimated reading level is Grade ${rounded}, well above the Grade ${READING_LEVEL_TARGET} target`,
+        description: `Estimated reading level is Grade ${rounded}, well above the Grade ${target} target`,
         text: "",
       },
     ];
   }
 
-  if (grade > READING_LEVEL_TARGET) {
+  if (grade > target) {
     return [
       {
         rule: "reading-level",
         severity: "warning",
-        description: `Estimated reading level is Grade ${rounded}, above the Grade ${READING_LEVEL_TARGET} target`,
+        description: `Estimated reading level is Grade ${rounded}, above the Grade ${target} target`,
         text: "",
       },
     ];
@@ -176,16 +172,16 @@ function checkWordAndCharCount(content, words) {
   ];
 }
 
-function checkSentenceLength(sentences) {
+function checkSentenceLength(sentences, limit) {
   const issues = [];
 
   for (const sentence of sentences) {
     const wordCount = getWords(sentence).length;
-    if (wordCount > SENTENCE_LENGTH_LIMIT) {
+    if (wordCount > limit) {
       issues.push({
         rule: "sentence-length",
-        severity: wordCount > 40 ? "error" : "warning",
-        description: `Sentence is ${wordCount} words long (limit ${SENTENCE_LENGTH_LIMIT})`,
+        severity: wordCount > limit * 1.6 ? "error" : "warning",
+        description: `Sentence is ${wordCount} words long (limit ${limit})`,
         text: truncate(sentence, 160),
       });
     }
@@ -236,21 +232,6 @@ function checkChannelConstraints(content, channel) {
   return issues;
 }
 
-function checkUnimplementedRules(rules) {
-  const issues = [];
-  for (const [key, label] of Object.entries(UNIMPLEMENTED_RULES)) {
-    if (rules[key]) {
-      issues.push({
-        rule: key,
-        severity: "info",
-        description: `${label} checking requires AI analysis and isn't available yet.`,
-        text: "",
-      });
-    }
-  }
-  return issues;
-}
-
 // Each additional issue costs a bit less than the last (multiplicative decay
 // rather than flat subtraction), so a handful of issues lands in a
 // meaningful mid-range instead of instantly saturating at 0 — only content
@@ -271,21 +252,39 @@ function computeScore(issues) {
 }
 
 /**
- * Runs all enabled governance checks against a piece of content.
- * @param {{content: string, channel: string, rules: Object<string, boolean>}} params
+ * Resolves a positive-number override from a profile field, falling back to
+ * the default when the field is missing, non-numeric, or non-positive.
+ * @param {*} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+function resolveLimit(value, fallback) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : fallback;
+}
+
+/**
+ * Runs all enabled governance checks against a piece of content. The active
+ * rule profile (if any) can override the reading-level target and the
+ * sentence-length limit; anything it doesn't set falls back to the module
+ * defaults above.
+ * @param {{content: string, channel: string, rules: Object<string, boolean>, profile: Object}} params
  * @returns {{score: number, issues: Array, meta: Object}}
  */
-function runChecks({ content, channel, rules }) {
+function runChecks({ content, channel, rules, profile }) {
   const words = getWords(content);
   const sentences = getSentences(content);
   const issues = [];
+
+  const readingLevelTarget = resolveLimit(profile && profile.reading_level_max, READING_LEVEL_TARGET);
+  const sentenceLengthLimit = resolveLimit(profile && profile.max_sentence_length, SENTENCE_LENGTH_LIMIT);
 
   if (rules["word-count"]) {
     issues.push(...checkWordAndCharCount(content, words));
   }
 
   if (rules["reading-level"]) {
-    issues.push(...checkReadingLevel(words, sentences));
+    issues.push(...checkReadingLevel(words, sentences, readingLevelTarget));
   }
 
   if (rules["passive-voice"]) {
@@ -293,14 +292,12 @@ function runChecks({ content, channel, rules }) {
   }
 
   if (rules["sentence-length"]) {
-    issues.push(...checkSentenceLength(sentences));
+    issues.push(...checkSentenceLength(sentences, sentenceLengthLimit));
   }
 
   if (rules["channel-constraints"]) {
     issues.push(...checkChannelConstraints(content, channel));
   }
-
-  issues.push(...checkUnimplementedRules(rules));
 
   const taggedIssues = issues.map((issue) => ({ source: "rule", ...issue }));
 

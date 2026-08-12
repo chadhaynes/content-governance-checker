@@ -50,7 +50,6 @@
     "sentence-length": "Sentence Length",
     "word-count": "Word &amp; Character Count",
     "channel-constraints": "Channel Constraints",
-    accessibility: "Accessibility",
   };
 
   const AI_CATEGORY_LABELS = {
@@ -59,6 +58,7 @@
     compliance: "Compliance Review",
     "customer-centricity": "Customer-Centricity",
     actionability: "Actionability",
+    accessibility: "Accessibility",
   };
 
   /**
@@ -315,6 +315,12 @@
           channel,
           rules: activeRules,
           profile_id: profileSelect.value ? Number(profileSelect.value) : null,
+          // Always the sidebar's current values, whether they came from the
+          // selected saved profile or are unsaved live edits — this is what
+          // actually drives the AI review and the reading-level/sentence-
+          // length limits (profile_id above is only used to attribute this
+          // check to a profile in the history log).
+          profile: collectProfileFormData(),
         }),
       });
 
@@ -363,6 +369,29 @@
     profileStatus.textContent = text;
     profileStatus.classList.toggle("is-error", !!isError);
     profileStatus.hidden = !text;
+  }
+
+  /**
+   * Reads the profile fields currently shown in the sidebar — whether they
+   * came from a loaded saved profile or are being edited live and never
+   * saved — in the snake_case shape the backend's rule_profiles table (and
+   * resolveProfile()) expect. This is the single source of truth sent with
+   * every /api/check request, so "what the sidebar shows" is always what
+   * gets applied, save state notwithstanding.
+   * @returns {Object}
+   */
+  function collectProfileFormData() {
+    return {
+      name: profileName.value.trim() || null,
+      channel: channelSelect.value,
+      reading_level_max: Number(readingLevelMax.value) || 8,
+      passive_voice_enabled: document.querySelector('[data-rule="passive-voice"]').checked,
+      max_sentence_length: Number(maxSentenceLength.value) || 25,
+      compliance_keywords_block: splitKeywords(complianceBlock.value),
+      compliance_keywords_require: splitKeywords(complianceRequire.value),
+      tone: profileTone.value || null,
+      custom_notes: customNotes.value.trim() || null,
+    };
   }
 
   /**
@@ -468,18 +497,7 @@
       return;
     }
 
-    const payload = {
-      name,
-      channel: channelSelect.value,
-      reading_level_max: Number(readingLevelMax.value) || 8,
-      passive_voice_enabled: document.querySelector('[data-rule="passive-voice"]').checked,
-      max_sentence_length: Number(maxSentenceLength.value) || 25,
-      compliance_keywords_block: splitKeywords(complianceBlock.value),
-      compliance_keywords_require: splitKeywords(complianceRequire.value),
-      tone: profileTone.value || null,
-      custom_notes: customNotes.value.trim() || null,
-    };
-
+    const payload = collectProfileFormData();
     const existingId = profileSelect.value;
     const isUpdate = Boolean(existingId);
 

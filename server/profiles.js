@@ -3,10 +3,11 @@
 
    A "rule profile" bundles the settings the AI-powered checks need but that
    don't fit as simple on/off toggles: the target tone for the channel, the
-   compliance keyword lists, and free-form reviewer notes. There's no
-   profile-management UI yet, so the client can optionally send a partial
-   profile in the request body and any missing fields fall back to
-   DEFAULT_PROFILE.
+   compliance keyword lists, and free-form reviewer notes. The client can
+   send a partial profile directly in the request body (resolveProfile), or
+   reference a profile saved in Postgres by id (fromSavedProfile converts the
+   db/profiles.js row shape into the same input); either way, any missing
+   fields fall back to DEFAULT_PROFILE.
    ========================================================================== */
 
 "use strict";
@@ -28,10 +29,40 @@ const DEFAULT_PROFILE = {
   customNotes: "",
 };
 
+// The saved-profile "tone" column is a short category, not the free-form
+// descriptive sentence the AI system prompt wants — expand it here.
+const TONE_DESCRIPTIONS = {
+  formal: "formal and professional — precise and respectful, avoiding contractions or casual language",
+  conversational: "conversational and warm — like a helpful person talking directly to the reader, using contractions and plain language",
+  neutral: "neutral and clear — matter-of-fact and straightforward, without being cold or overly casual",
+};
+
 function sanitizeKeywordList(list, fallback) {
   if (!Array.isArray(list)) return fallback;
   const cleaned = list.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
   return cleaned.length ? cleaned : fallback;
+}
+
+/**
+ * Converts a rule_profiles row (see db/profiles.js) into the shape
+ * resolveProfile() expects, so a profile saved via the profile-management
+ * endpoints can be used to drive the AI checks the same way an inline
+ * profile in the request body can.
+ * @param {Object|null} row
+ * @returns {Object}
+ */
+function fromSavedProfile(row) {
+  if (!row || typeof row !== "object") return {};
+
+  return {
+    name: row.name,
+    targetTone: (row.tone && TONE_DESCRIPTIONS[row.tone]) || undefined,
+    complianceKeywords: {
+      blocked: row.compliance_keywords_block,
+      required: row.compliance_keywords_require,
+    },
+    customNotes: row.custom_notes || undefined,
+  };
 }
 
 /**
@@ -59,4 +90,4 @@ function resolveProfile(input) {
   };
 }
 
-module.exports = { DEFAULT_PROFILE, resolveProfile };
+module.exports = { DEFAULT_PROFILE, resolveProfile, fromSavedProfile };

@@ -69,6 +69,10 @@
             <p class="results-empty-sub">Paste your content, choose a channel, and click <strong>Check Content</strong> to see flagged issues here.</p>
           </div>
           <ul class="results-list" id="resultsList" hidden></ul>
+          <div class="results-loading" id="resultsLoading" hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <p>Checking&hellip;</p>
+          </div>
         </div>
       </div>
     </section>
@@ -104,22 +108,11 @@
 
           <li class="rule-item">
             <div class="rule-info">
-              <span class="rule-name">Compliance Keywords</span>
-              <span class="rule-desc">Flag banned or required terms</span>
+              <span class="rule-name">✨ AI Content Review</span>
+              <span class="rule-desc">Claude reviews tone, plain language, compliance risk, customer-centricity &amp; actionability</span>
             </div>
             <label class="toggle">
-              <input type="checkbox" checked data-rule="compliance-keywords">
-              <span class="toggle-slider"></span>
-            </label>
-          </li>
-
-          <li class="rule-item">
-            <div class="rule-info">
-              <span class="rule-name">Tone of Voice</span>
-              <span class="rule-desc">Flag if too formal/informal for the channel</span>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" checked data-rule="tone-of-voice">
+              <input type="checkbox" checked data-rule="ai-review">
               <span class="toggle-slider"></span>
             </label>
           </li>
@@ -175,7 +168,7 @@
   </main>
 
   <footer class="app-footer">
-    <p>Content Governance Checker &mdash; reading level, passive voice, sentence length, word/character count, and channel constraint checks run locally on the server.</p>
+    <p>Content Governance Checker &mdash; reading level, passive voice, sentence length, word/character count, and channel constraint checks run locally on the server. AI Content Review is powered by Claude.</p>
   </footer>
 
   <script src="script.js"></script>

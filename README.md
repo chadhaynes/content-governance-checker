@@ -22,24 +22,10 @@ npm start
 
 Then open http://localhost:3000.
 
-`.env` is gitignored — never commit your real connection string. If the
-database isn't reachable, `POST /api/check` still runs; only the
-profile/history features degrade (their endpoints return a 500).
-
-## Database
-
-`npm run db:setup` (`server/db/setup.js`) applies `server/db/schema.sql`,
-which is idempotent and safe to re-run. It creates two tables:
-
-- **rule_profiles** — saved governance configurations: `id`, `name`,
-  `channel`, `reading_level_max`, `passive_voice_enabled`,
-  `max_sentence_length`, `compliance_keywords_block` (text array),
-  `compliance_keywords_require` (text array), `tone`, `custom_notes`,
-  `created_at`, `updated_at`.
-- **check_history** — a log of past checks: `id`, `profile_id` (FK to
-  `rule_profiles`, set null on profile delete), `content_snippet` (first 200
-  chars of the checked content), `overall_score`, `issues_count`,
-  `checked_at`.
+The AI Content Review rule calls the Claude API, so set `ANTHROPIC_API_KEY`
+in `server/.env` (see `server/.env` — never commit real keys) to use it.
+Without a key, that check simply reports an error in `meta.ai.error` and the
+rule-based checks still run normally.
 
 ## API
 
@@ -56,13 +42,25 @@ Request body:
     "passive-voice": true,
     "sentence-length": true,
     "word-count": true,
-    "channel-constraints": true
+    "channel-constraints": true,
+    "ai-review": true
+  },
+  "profile": {
+    "name": "Default",
+    "targetTone": "clear, warm, and professional",
+    "complianceKeywords": { "blocked": ["guaranteed"], "required": [] },
+    "customNotes": "Never mention specific pricing."
   }
 }
 ```
 
+<<<<<<< HEAD
+`profile` is optional — any omitted fields fall back to the built-in default
+profile (see `server/profiles.js`).
+=======
 Request body also accepts an optional `"profile_id": 1` — if set, the check
 is logged against that profile in `check_history`.
+>>>>>>> main
 
 Response body:
 
@@ -70,12 +68,34 @@ Response body:
 {
   "score": 0,
   "issues": [
-    { "rule": "reading-level", "severity": "warning", "description": "...", "text": "..." }
+    { "source": "rule", "rule": "reading-level", "severity": "warning", "description": "...", "text": "..." },
+    { "source": "ai", "rule": null, "category": "tone", "severity": "warning", "description": "...", "originalText": "...", "suggestedFix": "..." }
   ],
-  "meta": { "channel": "email", "wordCount": 0, "charCount": 0, "sentenceCount": 0 }
+  "meta": {
+    "channel": "email",
+    "wordCount": 0,
+    "charCount": 0,
+    "sentenceCount": 0,
+    "ai": { "enabled": true, "issueCount": 0, "error": null }
+  }
 }
 ```
 
+<<<<<<< HEAD
+Implemented rule-based checks (no AI, pure logic): reading level
+(Flesch-Kincaid grade estimate), passive voice detection, word/character
+count, sentence length (flags sentences over 25 words), and channel
+constraints (SMS 160 chars; push notification 50-char title / 100-char body,
+based on the first line of content as the title).
+
+The `ai-review` rule runs the rule-based checks and a Claude-powered review
+in parallel (see `server/ai-checker.js`) and merges the results. Claude
+reviews five categories against the active rule profile: tone alignment,
+plain language, compliance risk (including synonyms of blocked/required
+keywords, not just exact matches), customer-centricity, and actionability.
+`accessibility` is still reserved for a future pass and just returns an
+informational notice when enabled.
+=======
 Implemented checks (no AI, pure logic): reading level (Flesch-Kincaid grade
 estimate), passive voice detection, word/character count, sentence length
 (flags sentences over 25 words), and channel constraints (SMS 160 chars;
@@ -99,3 +119,4 @@ return an informational notice when enabled.
 
 - `GET /api/history?limit=20` — most recent check_history entries (newest
   first), each including `profile_name` if the profile still exists.
+>>>>>>> main

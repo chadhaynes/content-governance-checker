@@ -17,9 +17,9 @@ const CHANNEL_LIMITS = {
 };
 
 // Rules that will eventually need AI analysis — not implemented yet.
+// Tone of voice and compliance keywords are now covered by the AI-powered
+// checks in ai-checker.js (see the "ai-review" rule and server.js).
 const UNIMPLEMENTED_RULES = {
-  "compliance-keywords": "Compliance Keywords",
-  "tone-of-voice": "Tone of Voice",
   accessibility: "Accessibility",
 };
 
@@ -251,12 +251,22 @@ function checkUnimplementedRules(rules) {
   return issues;
 }
 
+// Each additional issue costs a bit less than the last (multiplicative decay
+// rather than flat subtraction), so a handful of issues lands in a
+// meaningful mid-range instead of instantly saturating at 0 — only content
+// with a genuinely large number of errors/warnings approaches the floor.
+const ERROR_DECAY = 0.85;
+const WARNING_DECAY = 0.93;
+
 function computeScore(issues) {
-  let score = 100;
+  let errorCount = 0;
+  let warningCount = 0;
   for (const issue of issues) {
-    if (issue.severity === "error") score -= 15;
-    else if (issue.severity === "warning") score -= 7;
+    if (issue.severity === "error") errorCount++;
+    else if (issue.severity === "warning") warningCount++;
   }
+
+  const score = 100 * Math.pow(ERROR_DECAY, errorCount) * Math.pow(WARNING_DECAY, warningCount);
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
@@ -292,9 +302,11 @@ function runChecks({ content, channel, rules }) {
 
   issues.push(...checkUnimplementedRules(rules));
 
+  const taggedIssues = issues.map((issue) => ({ source: "rule", ...issue }));
+
   return {
-    score: computeScore(issues),
-    issues,
+    score: computeScore(taggedIssues),
+    issues: taggedIssues,
     meta: {
       channel,
       wordCount: words.length,
@@ -306,6 +318,7 @@ function runChecks({ content, channel, rules }) {
 
 module.exports = {
   runChecks,
+  computeScore,
   fleschKincaidGrade,
   countSyllables,
   getWords,

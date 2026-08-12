@@ -1,30 +1,20 @@
 /* ==========================================================================
    Content Governance Checker — Express server
 
-   Serves the static frontend from ../client and exposes:
-     POST   /api/check           run the (non-AI) governance checks
-     POST   /api/profiles        create a rule profile
-     GET    /api/profiles        list rule profiles
-     GET    /api/profiles/:id    fetch a rule profile
-     PUT    /api/profiles/:id    update a rule profile
-     DELETE /api/profiles/:id    delete a rule profile
-     GET    /api/history         list recent check_history entries
+   Serves the static frontend from ../client and exposes the
+   POST /api/check endpoint, which runs the rule-based governance checks
+   and the Claude-powered AI checks in parallel and merges the results.
    ========================================================================== */
 
 "use strict";
 
+require("dotenv").config();
+
 const path = require("path");
 const express = require("express");
-const { runChecks } = require("./checks");
-const {
-  createProfile,
-  listProfiles,
-  getProfile,
-  updateProfile,
-  deleteProfile,
-  addHistoryEntry,
-  listHistory,
-} = require("./db/profiles");
+const { runChecks, computeScore } = require("./checks");
+const { runAIChecks } = require("./ai-checker");
+const { resolveProfile } = require("./profiles");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,108 +23,47 @@ const CLIENT_DIR = path.join(__dirname, "..", "client");
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(CLIENT_DIR));
 
-/**
- * Normalizes a rule-profile request body into the snake_case shape the
- * db/profiles.js layer expects, applying defaults for creation.
- * @param {Object} body
- * @param {boolean} isCreate - when true, missing fields fall back to defaults
- *   instead of being omitted (used for POST vs PUT).
- * @returns {Object}
- */
-function normalizeProfileInput(body, isCreate) {
-  const out = {};
-
-  const set = (key, value) => {
-    if (value !== undefined) out[key] = value;
-  };
-
-  set("name", typeof body.name === "string" ? body.name.trim() : isCreate ? "" : undefined);
-  set("channel", body.channel !== undefined ? (typeof body.channel === "string" ? body.channel : null) : isCreate ? null : undefined);
-  set(
-    "reading_level_max",
-    body.reading_level_max !== undefined
-      ? Number(body.reading_level_max)
-      : isCreate
-      ? 8
-      : undefined
-  );
-  set(
-    "passive_voice_enabled",
-    body.passive_voice_enabled !== undefined ? !!body.passive_voice_enabled : isCreate ? true : undefined
-  );
-  set(
-    "max_sentence_length",
-    body.max_sentence_length !== undefined
-      ? Number(body.max_sentence_length)
-      : isCreate
-      ? 25
-      : undefined
-  );
-  set(
-    "compliance_keywords_block",
-    body.compliance_keywords_block !== undefined
-      ? Array.isArray(body.compliance_keywords_block)
-        ? body.compliance_keywords_block.filter((w) => typeof w === "string" && w.trim()).map((w) => w.trim())
-        : []
-      : isCreate
-      ? []
-      : undefined
-  );
-  set(
-    "compliance_keywords_require",
-    body.compliance_keywords_require !== undefined
-      ? Array.isArray(body.compliance_keywords_require)
-        ? body.compliance_keywords_require.filter((w) => typeof w === "string" && w.trim()).map((w) => w.trim())
-        : []
-      : isCreate
-      ? []
-      : undefined
-  );
-  set("tone", body.tone !== undefined ? (typeof body.tone === "string" ? body.tone : null) : isCreate ? null : undefined);
-  set(
-    "custom_notes",
-    body.custom_notes !== undefined ? (typeof body.custom_notes === "string" ? body.custom_notes : null) : isCreate ? null : undefined
-  );
-
-  return out;
-}
-
-function parseId(req, res) {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: "id must be a positive integer" });
-    return null;
-  }
-  return id;
-}
-
 app.post("/api/check", async (req, res) => {
-  const { content, channel, rules, profile_id } = req.body || {};
+  const { content, channel, rules, profile } = req.body || {};
 
   if (typeof content !== "string" || !content.trim()) {
     return res.status(400).json({ error: "content is required and must be a non-empty string" });
   }
 
-  const result = runChecks({
-    content,
-    channel: typeof channel === "string" && channel ? channel : "email",
-    rules: rules && typeof rules === "object" ? rules : {},
-  });
+  const resolvedChannel = typeof channel === "string" && channel ? channel : "email";
+  const resolvedRules = rules && typeof rules === "object" ? rules : {};
+  const resolvedProfile = resolveProfile(profile);
+  const aiEnabled = Boolean(resolvedRules["ai-review"]);
 
   try {
-    await addHistoryEntry({
-      profile_id: Number.isInteger(profile_id) ? profile_id : null,
-      content_snippet: content.slice(0, 200),
-      overall_score: result.score,
-      issues_count: result.issues.length,
+    // Rule-based checks are synchronous/cheap; the AI checks are the only
+    // part worth actually parallelizing, but running both through
+    // Promise.all keeps the merge logic below in one place regardless.
+    const [ruleResult, aiResult] = await Promise.all([
+      Promise.resolve(runChecks({ content, channel: resolvedChannel, rules: resolvedRules })),
+      aiEnabled
+        ? runAIChecks({ content, channelType: resolvedChannel, profile: resolvedProfile })
+        : Promise.resolve({ issues: [], error: null }),
+    ]);
+
+    const allIssues = [...ruleResult.issues, ...aiResult.issues];
+
+    res.json({
+      score: computeScore(allIssues),
+      issues: allIssues,
+      meta: {
+        ...ruleResult.meta,
+        ai: {
+          enabled: aiEnabled,
+          issueCount: aiResult.issues.length,
+          error: aiResult.error,
+        },
+      },
     });
   } catch (err) {
-    // Governance checking must keep working even if history logging fails
-    // (e.g. the database isn't configured or is unreachable).
-    console.error("Failed to save check history:", err.message);
+    console.error("Error handling /api/check:", err);
+    res.status(500).json({ error: "Something went wrong while checking this content." });
   }
-
-  res.json(result);
 });
 
 app.post("/api/profiles", async (req, res) => {

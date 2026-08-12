@@ -331,6 +331,16 @@ h1, h2, h3 {
   color: var(--dark-slate);
 }
 
+/* `.results-empty`/`.results-list` set their own `display`, which (being an
+   author rule) otherwise wins the cascade over the UA default of
+   `[hidden] { display: none }` — so the `hidden` attribute alone doesn't
+   hide them. These force it. */
+.results-empty[hidden],
+.results-list[hidden],
+.results-loading[hidden] {
+  display: none;
+}
+
 .results-empty p {
   margin: 0;
 }
@@ -402,6 +412,127 @@ h1, h2, h3 {
   font-style: italic;
   color: var(--warm-gray);
   margin-top: 0.35rem;
+}
+
+/* Category group headings within the results list */
+
+.result-group-heading {
+  list-style: none;
+  padding: 0.4rem 0.25rem 0.1rem;
+  margin-top: 0.25rem;
+}
+
+.result-group-heading:first-child {
+  margin-top: 0;
+}
+
+.result-group-heading h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dark-slate);
+}
+
+.result-group-count {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--warm-gray);
+}
+
+/* AI-powered issues get a distinct violet accent to set them apart from
+   the rule-based (deterministic) checks. */
+
+/* .result-item.result-item-ai (two classes) is needed, not just
+   .result-item-ai, so this outranks the existing .result-item.severity-info
+   rule above — otherwise an AI "info" issue would silently fall back to the
+   plain blue info style instead of the violet AI accent. */
+.result-item.result-item-ai {
+  border-color: #b39ddb;
+  background: #f5f1fb;
+}
+
+.result-item.result-item-ai.severity-high {
+  border-color: var(--severity-high);
+  background: var(--severity-high-bg);
+}
+
+.result-item.result-item-ai.severity-medium {
+  border-color: var(--severity-medium);
+  background: var(--severity-medium-bg);
+}
+
+.result-suggested-fix {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px dashed #b39ddb;
+}
+
+.result-suggested-fix strong {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6a4d9c;
+  margin-bottom: 0.15rem;
+}
+
+.result-suggested-fix span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--near-black);
+  margin-top: 0;
+}
+
+.result-ai-error {
+  border-color: var(--soft-blue);
+  background: #eef3fa;
+}
+
+/* Loading state */
+
+.results-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2.25rem 1.5rem;
+  color: var(--dark-slate);
+}
+
+.results-loading p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 0.15rem;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--medium-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.results-loading .spinner {
+  width: 26px;
+  height: 26px;
+  margin-top: 0;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ==========================================================================

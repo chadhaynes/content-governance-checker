@@ -79,6 +79,64 @@
 
     <aside class="rules-sidebar" aria-labelledby="rules-heading">
       <div class="panel-card">
+        <h2 id="profile-heading">Rule Profile</h2>
+        <p class="sidebar-hint">Load a saved profile, or configure rules below and save them for reuse.</p>
+
+        <div class="profile-row">
+          <label for="profileSelect" class="field-label">Saved profiles</label>
+          <select id="profileSelect">
+            <option value="">&mdash; New / custom profile &mdash;</option>
+          </select>
+        </div>
+
+        <div class="profile-row">
+          <label for="profileName" class="field-label">Profile name</label>
+          <input type="text" id="profileName" placeholder="e.g. NAB Hardship Letters">
+        </div>
+
+        <div class="profile-grid">
+          <div class="profile-field">
+            <label for="profileTone" class="field-label">Tone</label>
+            <select id="profileTone">
+              <option value="">&mdash;</option>
+              <option value="formal">Formal</option>
+              <option value="conversational">Conversational</option>
+              <option value="neutral">Neutral</option>
+            </select>
+          </div>
+          <div class="profile-field">
+            <label for="readingLevelMax" class="field-label">Max reading grade</label>
+            <input type="number" id="readingLevelMax" min="1" max="20" value="8">
+          </div>
+          <div class="profile-field">
+            <label for="maxSentenceLength" class="field-label">Max sentence words</label>
+            <input type="number" id="maxSentenceLength" min="1" max="200" value="25">
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <label for="complianceBlock" class="field-label">Blocked words (comma-separated)</label>
+          <input type="text" id="complianceBlock" placeholder="e.g. guaranteed, risk-free">
+        </div>
+
+        <div class="profile-row">
+          <label for="complianceRequire" class="field-label">Required words (comma-separated)</label>
+          <input type="text" id="complianceRequire" placeholder="e.g. terms and conditions apply">
+        </div>
+
+        <div class="profile-row">
+          <label for="customNotes" class="field-label">Custom notes (for future AI checks)</label>
+          <textarea id="customNotes" rows="3" placeholder="Freeform guidance for this profile..."></textarea>
+        </div>
+
+        <div class="profile-actions">
+          <button type="button" id="saveProfileBtn" class="check-btn">Save Profile</button>
+          <button type="button" id="deleteProfileBtn" class="secondary-btn" hidden>Delete</button>
+        </div>
+        <p id="profileStatus" class="profile-status" hidden></p>
+      </div>
+
+      <div class="panel-card">
         <h2 id="rules-heading">Governance Rules</h2>
         <p class="sidebar-hint">Toggle the checks you want applied.</p>
 
@@ -161,6 +219,13 @@
             </label>
           </li>
 
+        </ul>
+      </div>
+
+      <div class="panel-card">
+        <h2 id="history-heading">Recent Checks</h2>
+        <ul id="historyList" class="history-list" aria-labelledby="history-heading">
+          <li class="history-empty" id="historyEmpty">No checks yet.</li>
         </ul>
       </div>
     </aside>

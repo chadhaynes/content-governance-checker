@@ -1,7 +1,7 @@
 /* ==========================================================================
    Content Governance Checker — Express server
 
-   Serves the static frontend from ../client and exposes the
+   Serves the static frontend from ./client and exposes the
    POST /api/check endpoint, which runs the rule-based governance checks
    and the Claude-powered AI checks in parallel and merges the results.
    ========================================================================== */
@@ -27,7 +27,7 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const CLIENT_DIR = path.join(__dirname, "..", "client");
+const CLIENT_DIR = path.join(__dirname, "client");
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(CLIENT_DIR));

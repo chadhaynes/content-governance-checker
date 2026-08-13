@@ -4,9 +4,11 @@ A tool for checking draft content against configurable governance rules.
 
 ## Structure
 
-- `client/` — static frontend (HTML/CSS/JS), served by the Express server.
 - `server/` — Express backend exposing `POST /api/check` plus profile and
   history endpoints, backed by PostgreSQL (`server/db/`).
+- `server/client/` — static frontend (HTML/CSS/JS), served by the Express
+  server. Nested under `server/` so it deploys as part of the same build
+  context (e.g. on Railway, where the service's Root Directory is `server`).
 
 ## Running
 
